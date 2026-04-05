@@ -3,36 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa RHA México Interactivo</title>
+    <title>Solo México RHA</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 20px; font-family: 'Segoe UI', sans-serif; background: #0b0b0b; color: white; text-align: center; }
-        #map { height: 600px; width: 100%; max-width: 1000px; margin: 20px auto; background: #111; border-radius: 15px; border: 1px solid #00FF88; box-shadow: 0 0 15px rgba(0,255,136,0.3); }
-        .leaflet-popup-content-wrapper { background: #222; color: #fff; border: 1px solid #00FF88; border-radius: 8px; }
-        .leaflet-popup-tip { background: #00FF88; }
-        h2 { color: #00FF88; text-shadow: 0 0 10px rgba(0,255,136,0.5); }
+        /* Fondo negro total para que solo exista México */
+        body { margin: 0; padding: 20px; font-family: sans-serif; background: #000; color: white; text-align: center; overflow: hidden; }
+        #map { height: 85vh; width: 100%; max-width: 1100px; margin: 0 auto; background: #000; border-radius: 20px; }
+        .leaflet-popup-content-wrapper { background: #1a1a1a; color: #fff; border: 1px solid #00FF88; }
+        h2 { color: #00FF88; font-size: 24px; text-shadow: 0 0 15px rgba(0,255,136,0.6); }
     </style>
 </head>
 <body>
 
     <h2>REGIONES HIDROLÓGICO-ADMINISTRATIVAS (CONAGUA)</h2>
-    <p>Haz clic en los estados para ver la información de la tabla</p>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. Inicializar el mapa centrado en México
-        var map = L.map('map', { attributionControl: false }).setView([23.5, -102.5], 5);
+        // Inicializamos el mapa sin el zoom touch/scroll para que no se pierda el país
+        var map = L.map('map', { 
+            attributionControl: false,
+            zoomSnap: 0.1
+        }).setView([23.5, -102.5], 5);
 
-        // 2. Capa base oscura (ESTA CARGA SÍ O SÍ)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 18
-        }).addTo(map);
+        // --- NO cargamos TileLayer para que el resto del mundo NO exista ---
 
-        // 3. Tus datos de la tabla (Aquí ya están todos los que me pasaste)
         const datosRHA = {
             "Hidalgo": "RHA 9, 10 y 13: Golfo Norte, Golfo Centro y Valle de México",
-            "México": "RHA 4, 8 y 13: Balsas, Lerma-Santiago y Valle de México",
+            "Estado de México": "RHA 4, 8 y 13: Balsas, Lerma-Santiago y Valle de México",
             "Ciudad de México": "RHA 13: Aguas del Valle de México",
             "Puebla": "RHA 4, 9 y 10: Balsas, Golfo Norte y Golfo Centro",
             "Baja California": "RHA 1: Península de Baja California",
@@ -56,25 +54,27 @@
             "Campeche": "RHA 11: Frontera Sur | RHA 12: Península de Yucatán"
         };
 
-        // 4. Cargar los polígonos de los estados (Link de respaldo ultra estable)
         fetch('https://raw.githubusercontent.com/angelnmaya/mexico-states-geojson/master/mexico.json')
             .then(res => res.json())
             .then(data => {
-                L.geoJSON(data, {
-                    style: { color: "#00FF88", weight: 1.5, fillColor: "#00FF88", fillOpacity: 0.2 },
+                var layer = L.geoJSON(data, {
+                    style: { 
+                        color: "#00FF88", // Borde neón
+                        weight: 1.5, 
+                        fillColor: "#004422", 
+                        fillOpacity: 0.8 
+                    },
                     onEachFeature: function(feature, layer) {
                         let nombre = feature.properties.name;
                         layer.on('click', function(e) {
-                            let info = datosRHA[nombre] || "Datos disponibles en la tabla original.";
+                            let info = datosRHA[nombre] || "Datos de CONAGUA disponibles.";
                             L.popup().setLatLng(e.latlng).setContent(`<b>${nombre}</b><br>${info}`).openOn(map);
                         });
-                        layer.on('mouseover', function() { this.setStyle({ fillOpacity: 0.5, fillColor: "#00FF88" }); });
-                        layer.on('mouseout', function() { this.setStyle({ fillOpacity: 0.2, fillColor: "#00FF88" }); });
+                        layer.on('mouseover', function() { this.setStyle({ fillOpacity: 1, fillColor: "#00FF88", color: "white" }); });
+                        layer.on('mouseout', function() { this.setStyle({ fillOpacity: 0.8, fillColor: "#004422", color: "#00FF88" }); });
                     }
                 }).addTo(map);
-            })
-            .catch(err => {
-                alert("Si no ves las líneas verdes, intenta refrescar la página una vez más.");
+                map.fitBounds(layer.getBounds());
             });
     </script>
 </body>
