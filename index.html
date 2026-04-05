@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mapa RHA México - Interactivo</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 20px; font-family: 'Segoe UI', Arial, sans-serif; background: #0b0b0b; color: white; text-align: center; }
+        #map { height: 650px; width: 100%; max-width: 1100px; margin: 20px auto; background: #111; border-radius: 15px; border: 1px solid #333; box-shadow: 0 0 20px rgba(0,255,136,0.2); }
+        .leaflet-popup-content-wrapper { background: #222; color: #fff; border: 1px solid #00FF88; border-radius: 8px; }
+        .leaflet-popup-tip { background: #00FF88; }
+        h2 { color: #00FF88; text-transform: uppercase; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+
+    <h2>Regiones Hidrológico-Administrativas (CONAGUA)</h2>
+    <p>Haz clic en cualquier estado para ver las RHA que lo abarcan</p>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Inicializar mapa sin mapa base mundial
+        var map = L.map('map', { attributionControl: false }).setView([23.5, -102.5], 5);
+
+        // Diccionario completo basado en tu imagen (RHA 1 a 13)
+        const datosRHA = {
+            "Baja California": "<b>RHA 1:</b> Península de Baja California",
+            "Baja California Sur": "<b>RHA 1:</b> Península de Baja California",
+            "Sonora": "<b>RHA 2:</b> Noroeste | <b>RHA 3:</b> Pacífico Norte | <b>RHA 8:</b> Lerma-Santiago-Pacífico",
+            "Chihuahua": "<b>RHA 2:</b> Noroeste | <b>RHA 3:</b> Pacífico Norte | <b>RHA 6:</b> Río Bravo",
+            "Sinaloa": "<b>RHA 3:</b> Pacífico Norte",
+            "Nayarit": "<b>RHA 3:</b> Pacífico Norte | <b>RHA 8:</b> Lerma-Santiago-Pacífico",
+            "Durango": "<b>RHA 3:</b> Pacífico Norte | <b>RHA 6:</b> Río Bravo | <b>RHA 7:</b> Cuencas Centrales del Norte",
+            "Zacatecas": "<b>RHA 3:</b> Pacífico Norte | <b>RHA 7:</b> Cuencas Centrales del Norte | <b>RHA 8:</b> Lerma-Santiago-Pacífico",
+            "Michoacán de Ocampo": "<b>RHA 4:</b> Balsas | <b>RHA 8:</b> Lerma-Santiago-Pacífico",
+            "Guerrero": "<b>RHA 4:</b> Balsas | <b>RHA 5:</b> Pacífico Sur",
+            "México": "<b>RHA 4:</b> Balsas | <b>RHA 8:</b> Lerma-Santiago-Pacífico | <b>RHA 13:</b> Aguas del Valle de México",
+            "Morelos": "<b>RHA 4:</b> Balsas",
+            "Puebla": "<b>RHA 4:</b> Balsas | <b>RHA 9:</b> Golfo Norte | <b>RHA 10:</b> Golfo Centro",
+            "Jalisco": "<b>RHA 4:</b> Balsas | <b>RHA 8:</b> Lerma-Santiago-Pacífico",
+            "Oaxaca": "<b>RHA 4:</b> Balsas | <b>RHA 5:</b> Pacífico Sur | <b>RHA 10:</b> Golfo Centro | <b>RHA 11:</b> Frontera Sur",
+            "Tlaxcala": "<b>RHA 4:</b> Balsas | <b>RHA 10:</b> Golfo Centro | <b>RHA 13:</b> Aguas del Valle de México",
+            "Chiapas": "<b>RHA 5:</b> Pacífico Sur | <b>RHA 11:</b> Frontera Sur",
+            "Coahuila de Zaragoza": "<b>RHA 6:</b> Río Bravo | <b>RHA 7:</b> Cuencas Centrales del Norte",
+            "Nuevo León": "<b>RHA 6:</b> Río Bravo",
+            "Tamaulipas": "<b>RHA 6:</b> Río Bravo | <b>RHA 9:</b> Golfo Norte",
+            "San Luis Potosí": "<b>RHA 7:</b> Cuencas Centrales del Norte | <b>RHA 9:</b> Golfo Norte",
+            "Aguascalientes": "<b>RHA 8:</b> Lerma-Santiago-Pacífico",
+            "Colima": "<b>RHA 8:</b> Lerma-Santiago-Pacífico",
+            "Guanajuato": "<b>RHA 8:</b> Lerma-Santiago-Pacífico | <b>RHA 9:</b> Golfo Norte",
+            "Querétaro": "<b>RHA 8:</b> Lerma-Santiago-Pacífico | <b>RHA 9:</b> Golfo Norte",
+            "Veracruz de Ignacio de la Llave": "<b>RHA 9:</b> Golfo Norte | <b>RHA 10:</b> Golfo Centro",
+            "Hidalgo": "<b>RHA 9:</b> Golfo Norte | <b>RHA 10:</b> Golfo Centro | <b>RHA 13:</b> Aguas del Valle de México",
+            "Tabasco": "<b>RHA 10:</b> Golfo Centro | <b>RHA 11:</b> Frontera Sur",
+            "Campeche": "<b>RHA 11:</b> Frontera Sur | <b>RHA 12:</b> Península de Yucatán",
+            "Yucatán": "<b>RHA 12:</b> Península de Yucatán",
+            "Quintana Roo": "<b>RHA 12:</b> Península de Yucatán",
+            "Distrito Federal": "<b>RHA 13:</b> Aguas del Valle de México"
+        };
+
+        // Cargar mapa de estados
+        fetch('https://raw.githubusercontent.com/angelnmaya/mexico-states-geojson/master/mexico.json')
+            .then(res => res.json())
+            .then(data => {
+                var layer = L.geoJSON(data, {
+                    style: { color: "#00FF88", weight: 1.5, fillColor: "#004422", fillOpacity: 0.7 },
+                    onEachFeature: function(feature, layer) {
+                        let nombre = feature.properties.name;
+                        layer.on('click', function(e) {
+                            let info = datosRHA[nombre] || "Información general de la región.";
+                            L.popup().setLatLng(e.latlng).setContent(`<b>${nombre}</b><br>${info}`).openOn(map);
+                        });
+                        layer.on('mouseover', function() { this.setStyle({ fillOpacity: 1, fillColor: "#00FF88", color: "white" }); });
+                        layer.on('mouseout', function() { this.setStyle({ fillOpacity: 0.7, fillColor: "#004422", color: "#00FF88" }); });
+                    }
+                }).addTo(map);
+                map.fitBounds(layer.getBounds());
+            });
+    </script>
+</body>
+</html>
